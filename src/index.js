@@ -21,6 +21,21 @@ const server = express();
 const recetasDB = "recetas_db";
 const usuariosDB = "usuarios_db";
 
+// Token
+const generateToken = (payload) => {
+  const token = jwt.sign(payload, "secreto", { expiresIn: "24h" });
+  return token;
+};
+
+const verifyToken = (token) => {
+  try {
+    const decoded = jwt.verify(token, "secreto");
+    return decoded;
+  } catch (err) {
+    return null;
+  }
+};
+
 // Configuración del servidor
 
 server.use(cors());
@@ -208,6 +223,55 @@ server.post("/registro", async (req, res) => {
     res.json({
       success: true,
       token: token,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error,
+    });
+  }
+});
+
+// Inicio de sesión
+
+server.post("/login", async (req, res) => {
+  const body = req.body;
+
+  //Buscar usuario por email en la base de datos
+  try {
+    let sql = "SELECT * FROM usuarios WHERE email = ?";
+    const conn = await getConnection(usuariosDB);
+    const [users] = await conn.query(sql, [body.email]);
+    conn.end();
+    const usuario = users[0];
+    console.log(usuario);
+
+    //Comprobar la contraseña
+    const passwordMatch =
+      usuario === null
+        ? false
+        : await bcrypt.compare(body.password, usuario.password);
+
+    // Si no existe el usuario o el password no es correcto
+    if (!(usuario && passwordMatch)) {
+      return res.status(401).json({
+        error: "Invalid user or password",
+      });
+    }
+
+    // Generar token si password es correcta
+    const userForToken = {
+      email: usuario.email,
+      password: usuario.password,
+    };
+
+    const token = generateToken(userForToken);
+
+    // Enviar respuesta correcta
+
+    res.status(200).json({
+      token,
+      email: usuario.email,
     });
   } catch (error) {
     res.json({
