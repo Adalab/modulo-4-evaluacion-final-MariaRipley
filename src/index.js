@@ -59,8 +59,10 @@ server.get("/recetas", async (res) => {
 
     conn.end();
   } catch (error) {
-    console.error("Error en la conexión", error);
-    res.status(500).json({ error: "Error en la conexión" });
+    res.json({
+      success: false,
+      message: error,
+    });
   }
 });
 
@@ -82,8 +84,10 @@ server.get("/recetas/:id", async (req, res) => {
 
     conn.end();
   } catch (error) {
-    console.error("Error en la conexión", error);
-    res.status(500).json({ error: "Error en la conexión" });
+    res.json({
+      success: false,
+      message: error,
+    });
   }
 });
 
@@ -144,3 +148,21 @@ server.put("/recetas/:id", async (req, res) => {
 });
 
 // Eliminar una receta
+
+server.delete("/recetas/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const deleteRecipe = "DELETE FROM recetas WHERE id = ?";
+    const conn = await getConnection();
+    const [result] = await conn.query(deleteRecipe, id);
+    conn.end();
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error,
+    });
+  }
+});
