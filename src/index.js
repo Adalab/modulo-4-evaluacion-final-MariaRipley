@@ -45,13 +45,13 @@ server.listen(port, () => {
 
 // Obtener todas las recetas
 
-server.get("/recetas", async (req, res) => {
+server.get("/recetas", async (res) => {
   try {
     const select = "SELECT * FROM recetas";
     const conn = await getConnection();
     const [results] = await conn.query(select);
-
     const numOfElements = results.length;
+
     res.json({
       info: { count: numOfElements },
       results: results,
@@ -66,4 +66,25 @@ server.get("/recetas", async (req, res) => {
 
 // Obtener una receta por su ID
 
-server.get("/recetas/:id");
+server.get("/recetas/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const select = "SELECT * FROM recetas WHERE id = ?";
+    const conn = await getConnection();
+    const [result] = await conn.query(select, id);
+    const recipe = result[0];
+
+    res.json({
+      nombre: recipe.nombre,
+      ingredientes: recipe.ingredientes,
+      instrucciones: recipe.instrucciones,
+    });
+
+    conn.end();
+  } catch (error) {
+    console.error("Error en la conexión", error);
+    res.status(500).json({ error: "Error en la conexión" });
+  }
+});
+
+// Crear una nueva receta
