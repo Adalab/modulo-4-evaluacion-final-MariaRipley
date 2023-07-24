@@ -117,3 +117,30 @@ server.post("/recetas", async (req, res) => {
 });
 
 // Actualizar una receta existente
+
+server.put("/recetas/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { nombreFront, ingredientesFront, instruccionesFront } = req.body;
+    const update =
+      "UPDATE recetas SET nombre = ?, ingredientes = ?, instrucciones = ? WHERE id = ?";
+    const conn = await getConnection();
+    const [result] = await conn.query(update, [
+      nombreFront,
+      ingredientesFront,
+      instruccionesFront,
+      id,
+    ]);
+    conn.end();
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error,
+    });
+  }
+});
+
+// Eliminar una receta
