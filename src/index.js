@@ -9,10 +9,14 @@ const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 // Arracar el servidor
 
 const server = express();
+
+// Bases de datos
 
 const recetasDB = "recetas_db";
 const usuariosDB = "usuarios_db";
@@ -183,17 +187,27 @@ server.post("/registro", async (req, res) => {
     const insert =
       "INSERT INTO usuarios (email, nombre, `password`) values (?, ?, ?)";
     const conn = await getConnection(usuariosDB);
+    const passwordHash = await bcrypt.hash(newUser.password, 10);
+
     const [result] = await conn.query(insert, [
       newUser.email,
       newUser.nombre,
-      newUser.password,
+      passwordHash,
     ]);
     const newUserId = result.insertId;
     conn.end();
 
+    const token = jwt.sign(
+      {
+        id: newUserId,
+        email: newUser.email,
+      },
+      "secreto_jwt"
+    );
+
     res.json({
       success: true,
-      id: newUserId,
+      token: token,
     });
   } catch (error) {
     res.json({
