@@ -14,6 +14,9 @@ require("dotenv").config();
 
 const server = express();
 
+const recetasDB = "recetas_db";
+const usuariosDB = "usuarios_db";
+
 // Configuración del servidor
 
 server.use(cors());
@@ -21,12 +24,17 @@ server.use(express.json({ limit: "25mb" }));
 
 // Conexion a la base de datos
 
-async function getConnection() {
+async function getConnection(dbName) {
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST || "localhost",
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASS,
-    database: process.env.DB_NAME || "Clase",
+    database:
+      dbName == recetasDB
+        ? process.env.DB_NAME
+        : dbName == usuariosDB
+        ? process.env.DB_NAME_USERS
+        : "Clase",
   });
 
   connection.connect();
@@ -45,10 +53,10 @@ server.listen(port, () => {
 
 // Obtener todas las recetas
 
-server.get("/recetas", async (res) => {
+server.get("/recetas", async (req, res) => {
   try {
     const select = "SELECT * FROM recetas";
-    const conn = await getConnection();
+    const conn = await getConnection(recetasDB);
     const [results] = await conn.query(select);
     const numOfElements = results.length;
 
@@ -72,7 +80,7 @@ server.get("/recetas/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const select = "SELECT * FROM recetas WHERE id = ?";
-    const conn = await getConnection();
+    const conn = await getConnection(recetasDB);
     const [result] = await conn.query(select, id);
     const recipe = result[0];
 
@@ -98,7 +106,7 @@ server.post("/recetas", async (req, res) => {
     const newRecipe = req.body;
     const insert =
       "INSERT INTO recetas (nombre, ingredientes, instrucciones) values (?, ?, ?)";
-    const conn = await getConnection();
+    const conn = await getConnection(recetasDB);
     const [result] = await conn.query(insert, [
       newRecipe.nombre,
       newRecipe.ingredientes,
@@ -128,7 +136,7 @@ server.put("/recetas/:id", async (req, res) => {
     const { nombreFront, ingredientesFront, instruccionesFront } = req.body;
     const update =
       "UPDATE recetas SET nombre = ?, ingredientes = ?, instrucciones = ? WHERE id = ?";
-    const conn = await getConnection();
+    const conn = await getConnection(recetasDB);
     const [result] = await conn.query(update, [
       nombreFront,
       ingredientesFront,
@@ -153,11 +161,39 @@ server.delete("/recetas/:id", async (req, res) => {
   const id = req.params.id;
   try {
     const deleteRecipe = "DELETE FROM recetas WHERE id = ?";
-    const conn = await getConnection();
+    const conn = await getConnection(recetasDB);
     const [result] = await conn.query(deleteRecipe, id);
     conn.end();
     res.json({
       success: true,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error,
+    });
+  }
+});
+
+// Registro de usuarios
+
+server.post("/registro", async (req, res) => {
+  try {
+    const newUser = req.body;
+    const insert =
+      "INSERT INTO usuarios (email, nombre, `password`) values (?, ?, ?)";
+    const conn = await getConnection(usuariosDB);
+    const [result] = await conn.query(insert, [
+      newUser.email,
+      newUser.nombre,
+      newUser.password,
+    ]);
+    const newUserId = result.insertId;
+    conn.end();
+
+    res.json({
+      success: true,
+      id: newUserId,
     });
   } catch (error) {
     res.json({
