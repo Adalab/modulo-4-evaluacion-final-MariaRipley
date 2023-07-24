@@ -88,3 +88,32 @@ server.get("/recetas/:id", async (req, res) => {
 });
 
 // Crear una nueva receta
+
+server.post("/recetas", async (req, res) => {
+  try {
+    const newRecipe = req.body;
+    const insert =
+      "INSERT INTO recetas (nombre, ingredientes, instrucciones) values (?, ?, ?)";
+    const conn = await getConnection();
+    const [result] = await conn.query(insert, [
+      newRecipe.nombre,
+      newRecipe.ingredientes,
+      newRecipe.instrucciones,
+    ]);
+
+    const newRecipeId = result.insertId;
+    conn.end();
+
+    res.json({
+      success: true,
+      id: newRecipeId,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error,
+    });
+  }
+});
+
+// Actualizar una receta existente
